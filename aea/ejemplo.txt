@@ -1,0 +1,338 @@
+/*
+ =====================================================================
+  GUÍA RÁPIDA: CÓMO USAR ESTA PLANTILLA EN TU EXAMEN
+ =====================================================================
+
+  1. Lee el caso y marca:
+       - PERSONAS / ROLES          -> van en la sección "PERSONAS"
+       - OTROS SISTEMAS EXTERNOS   -> van en "SISTEMAS EXTERNOS"
+       - MÓDULOS / FUNCIONALIDADES -> se convierten en contenedores
+       - VERBOS (vota, consulta...) -> se convierten en relaciones (->)
+
+  2. Reemplaza los textos entre comillas por los de tu caso.
+     Borra lo que no uses y copia/pega líneas si necesitas más.
+
+  3. Pega el código completo en https://structurizr.com/dsl
+     (o en Structurizr Lite) y revisa las tres vistas.
+
+  4. Exporta cada vista como PNG y pégala en tu examen.
+
+  REGLAS DE SINTAXIS QUE DEBES RESPETAR:
+   - Los comentarios empiezan con //  o  #  (o van entre /* y */).
+   - Pon cada comentario en su propia línea, no al final de una instrucción.
+   - Los IDENTIFICADORES (la palabra antes del "=") no llevan espacios,
+     tildes ni ñ. Ej: bien -> servPadron ; mal -> serv padrón
+   - Cada identificador debe ser ÚNICO en todo el archivo.
+   - Los textos entre comillas SÍ pueden tener espacios, tildes y ñ.
+   - Todas las llaves { } que abres deben cerrarse.
+ =====================================================================
+*/
+
+// "workspace" es el contenedor de todo el trabajo.
+// Formato: workspace "Nombre del proyecto" "Descripción corta"
+workspace "Sistema Electoral" "Modelo C4 del software de elecciones presidenciales" {
+
+    // =================================================================
+    // MODEL: aquí se DEFINEN los elementos y sus relaciones.
+    // Todavía no se dibuja nada; eso se hace después en "views".
+    // =================================================================
+    model {
+
+        // -------------------------------------------------------------
+        // PERSONAS (ACTORES) -> aparecen en los niveles 1, 2 y 3
+        // -------------------------------------------------------------
+        // Formato:
+        //   identificador = person "Nombre visible" "Qué hace con el sistema"
+        //
+        // Cómo identificarlos: pregúntate "¿quién usa directamente el
+        // sistema?". Usa ROLES (Cliente, Cajero), no personas concretas.
+        // En la descripción pon un verbo: qué hace ese actor.
+        // -------------------------------------------------------------
+        elector = person "Elector" "Ciudadano apto que emite su voto."
+        miembroMesa = person "Miembro de mesa" "Instala la mesa, escanea y firma las actas."
+        personero = person "Personero" "Representante de partido que fiscaliza el proceso."
+        admin = person "Administrador electoral" "Gestiona padrón, locales, mesas y acreditaciones."
+        jurado = person "Jurado electoral" "Resuelve legalmente las actas observadas."
+        ciudadania = person "Ciudadanía y prensa" "Consulta resultados y actas publicadas."
+
+        // -------------------------------------------------------------
+        // SISTEMAS EXTERNOS -> aparecen en gris en todos los niveles
+        // -------------------------------------------------------------
+        // Formato:
+        //   identificador = softwareSystem "Nombre" "Descripción" "Externo"
+        //
+        // El tercer texto ("Externo") es una ETIQUETA (tag). La usamos
+        // al final, en "styles", para pintarlos de gris.
+        //
+        // Cómo identificarlos: "¿de qué otro sistema depende el mío que
+        // mi equipo NO construye ni controla?". Ej: pasarela de pagos,
+        // SUNAT, RENIEC, servicio de correo, bancos, APIs de terceros.
+        // -------------------------------------------------------------
+        registroCivil = softwareSystem "Registro civil (RENIEC)" "Provee datos de identidad y defunciones." "Externo"
+        pki = softwareSystem "Autoridad PKI" "Emite y valida certificados de firma digital." "Externo"
+        cdn = softwareSystem "CDN anti-DDoS" "Distribuye el portal y absorbe tráfico masivo." "Externo"
+
+        // -------------------------------------------------------------
+        // TU SISTEMA (el que estás diseñando) -> NIVEL 1 es solo esta caja
+        // -------------------------------------------------------------
+        // Formato:
+        //   identificador = softwareSystem "Nombre" "Descripción" {
+        //       ...aquí adentro van los CONTENEDORES (nivel 2)...
+        //   }
+        //
+        // La descripción debe resumir en una línea lo que hace todo el
+        // sistema. Tip: menciona los módulos principales del caso.
+        // -------------------------------------------------------------
+        sistema = softwareSystem "Sistema electoral" "Gestiona padrón, votación, escrutinio y resultados." {
+
+            // =========================================================
+            // CONTENEDORES (NIVEL 2)
+            // =========================================================
+            // Formato:
+            //   id = container "Nombre" "Descripción" "Tecnología"
+            //   id = container "Nombre" "Descripción" "Tecnología" "Tag"
+            //
+            // Un contenedor es algo que se ejecuta o se despliega por
+            // separado: app web, app móvil, API/servicio, base de datos,
+            // almacén de archivos. (NO confundir con Docker.)
+            //
+            // La TECNOLOGÍA es obligatoria en espíritu: si no sabes cuál,
+            // pon una razonable (React, Angular, Spring Boot, Node.js,
+            // .NET, PostgreSQL, MySQL, MongoDB, Flutter, etc.).
+            // =========================================================
+
+            // --- FRONTENDS ---
+            // Pregunta: "¿por dónde entra cada actor?"
+            // Normalmente cada tipo de usuario tiene su propia app.
+            appGestion = container "App de gestión" "Padrón, locales, mesas y acreditación." "Web / React"
+            dre = container "Máquina de votación DRE" "Interfaz táctil de sufragio con impresión VVPAT." "Aplicación embebida"
+            appEscrutinio = container "App de escrutinio" "Escaneo y transmisión de actas desde el local." "Aplicación de escritorio"
+            portal = container "Portal de resultados" "Resultados en tiempo real y consulta de actas en PDF." "Web / SPA"
+
+            // --- PUNTO DE ENTRADA (opcional) ---
+            // Un API Gateway es útil cuando hay varios servicios y el caso
+            // pide seguridad. Si tu caso es simple, puedes borrarlo y
+            // conectar los frontends directamente a los servicios.
+            gateway = container "API Gateway" "Entrada única: VPN, TLS mutuo y rate limiting." "API Gateway"
+
+            // --- SERVICIOS / BACKEND ---
+            // Pregunta: "¿qué módulos grandes tiene el caso?"
+            // Regla práctica: 1 módulo del caso = 1 servicio.
+            // Si tu caso es pequeño, basta con un solo "Backend / API".
+            servPadron = container "Servicio de padrón" "Censo electoral y asignación de locales y mesas." "Spring Boot"
+            servVotacion = container "Servicio de votación" "Cifra y anonimiza el voto." "Spring Boot"
+
+            // Este contenedor tiene llaves { } porque adentro van sus
+            // COMPONENTES (nivel 3). Solo necesitas hacerlo en el
+            // contenedor que elijas para el diagrama de componentes;
+            // los demás van en una sola línea, sin llaves.
+            servEscrutinio = container "Servicio de escrutinio" "Recibe, verifica y valida actas." "Spring Boot" {
+
+                // =====================================================
+                // COMPONENTES (NIVEL 3)
+                // =====================================================
+                // Formato:
+                //   id = component "Nombre" "Responsabilidad" "Tipo/Tecnología"
+                //
+                // Cómo identificarlos: sigue el recorrido de los datos
+                // DENTRO de este contenedor (qué pasa primero, qué
+                // después). Cada paso con una responsabilidad clara es
+                // un componente. También sirve tomar cada funcionalidad
+                // del módulo en el caso y volverla componente.
+                //
+                // Nombres típicos: Controlador, Servicio, Validador,
+                // Repositorio, Gestor, Publicador, Cliente de X.
+                // Con 4 a 8 componentes es suficiente.
+                // =====================================================
+                receptor = component "Receptor de actas" "Recibe las actas transmitidas por VPN." "REST Controller"
+                verificador = component "Verificador de firma" "Valida las firmas digitales de los miembros de mesa." "Servicio"
+                ocr = component "Extractor OCR" "Digitaliza y tabula el acta escaneada." "Servicio OCR"
+                validador = component "Validador de consistencia" "Detecta ilegibilidad e inconsistencias numéricas." "Servicio"
+                repositorio = component "Repositorio de actas" "Guarda el PDF del acta y su hash." "Repositorio"
+                gestorObs = component "Gestor de actas observadas" "Deriva las actas con errores al jurado." "Workflow"
+                publicador = component "Publicador de eventos" "Envía las actas válidas a tabulación." "Productor de mensajes"
+                auditoria = component "Registro de auditoría" "Sella cada operación en el ledger." "Servicio"
+            }
+
+            servTabulacion = container "Servicio de tabulación" "Suma los votos en tiempo real." "Spring Boot"
+
+            // --- ALMACENES DE DATOS ---
+            // El 4.º texto "Base de datos" es un TAG: en "styles" lo
+            // usamos para dibujarlos como cilindro.
+            // Pregunta: "¿qué información se guarda y es de tipo distinto?"
+            // Si los datos son muy diferentes, sepáralos; si no, usa una
+            // sola base de datos.
+            bdPadron = container "BD padrón" "Ciudadanos, locales y mesas." "PostgreSQL" "Base de datos"
+            ledger = container "Ledger de votos" "Registro inmutable de votos y hashes de actas." "Blockchain" "Base de datos"
+            almacenActas = container "Almacén de actas" "PDF de las actas escaneadas." "Object Storage" "Base de datos"
+            bdResultados = container "BD resultados" "Resultados con réplicas de lectura y caché." "PostgreSQL + Redis" "Base de datos"
+        }
+
+        // =============================================================
+        // RELACIONES (LAS FLECHAS)
+        // =============================================================
+        // Formato:
+        //   origen -> destino "Qué hace (verbo)" "Tecnología/protocolo"
+        //
+        // El 2.º texto (tecnología) es opcional: HTTPS, JSON, JDBC,
+        // VPN, SQL, cola de mensajes, etc.
+        //
+        // TRUCO IMPORTANTE: define las flechas en el nivel MÁS BAJO
+        // posible (persona -> contenedor, componente -> contenedor).
+        // Structurizr "sube" automáticamente esas flechas a los niveles
+        // superiores. Por ejemplo, "elector -> dre" hace que en el
+        // diagrama de contexto aparezca "Elector -> Sistema electoral".
+        // Así no tienes que repetir flechas.
+        // =============================================================
+
+        // --- Personas -> contenedores (entrada de cada actor) ---
+        admin -> appGestion "Gestiona padrón y acreditaciones" "HTTPS"
+        elector -> dre "Emite su voto"
+        miembroMesa -> appEscrutinio "Escanea y firma actas"
+        personero -> portal "Verifica el acta de su mesa" "HTTPS"
+        ciudadania -> cdn "Consulta resultados" "HTTPS"
+        cdn -> portal "Entrega el portal en caché" "HTTPS"
+
+        // --- Frontends -> gateway ---
+        appGestion -> gateway "Envía solicitudes" "HTTPS/JSON"
+        dre -> gateway "Envía voto cifrado" "VPN"
+        appEscrutinio -> gateway "Transmite actas firmadas" "VPN"
+        portal -> gateway "Consulta resultados y actas" "HTTPS/JSON"
+
+        // --- Gateway -> servicios ---
+        // Fíjate: la flecha va al COMPONENTE "receptor", no al
+        // contenedor. Así aparece bien en el nivel 3 y Structurizr la
+        // convierte en "gateway -> servEscrutinio" en el nivel 2.
+        gateway -> servPadron "Enruta solicitudes" "HTTPS/JSON"
+        gateway -> servVotacion "Enruta votos" "HTTPS/JSON"
+        gateway -> receptor "Enruta actas" "HTTPS/JSON"
+        gateway -> servTabulacion "Enruta consultas" "HTTPS/JSON"
+
+        // --- Servicios -> datos y sistemas externos ---
+        servPadron -> bdPadron "Lee y escribe" "JDBC"
+        servPadron -> registroCivil "Valida identidades y defunciones" "HTTPS"
+        servVotacion -> ledger "Registra voto anonimizado"
+        servTabulacion -> bdResultados "Actualiza y lee resultados"
+
+        // --- Componentes del escrutinio (nivel 3) ---
+        // Sigue el recorrido del acta paso a paso.
+        receptor -> repositorio "Guarda el acta recibida"
+        receptor -> verificador "Solicita verificación"
+        verificador -> pki "Valida certificados" "HTTPS"
+        verificador -> ocr "Envía acta con firma válida"
+        ocr -> validador "Entrega datos tabulados"
+        validador -> publicador "Acta correcta"
+        validador -> gestorObs "Acta con errores"
+        validador -> auditoria "Registra el resultado"
+        repositorio -> almacenActas "Almacena el PDF" "S3 API"
+        auditoria -> ledger "Sella el hash del acta"
+        publicador -> servTabulacion "Publica acta validada" "Cola de mensajes"
+        gestorObs -> jurado "Deriva para resolución legal"
+    }
+
+    // =================================================================
+    // VIEWS: aquí se DIBUJAN los diagramas (uno por nivel).
+    // =================================================================
+    // Formato general:
+    //   tipoDeVista elementoAlQueHacesZoom "clave" "título" {
+    //       include ...
+    //       autoLayout
+    //   }
+    //
+    // "clave" es un nombre interno sin espacios; el "título" es el que
+    // se muestra en el diagrama.
+    // =================================================================
+    views {
+
+        // ----- NIVEL 1: CONTEXTO -----
+        // "include *" agrega el sistema y todo lo conectado DIRECTAMENTE
+        // a él. "ciudadania" se agrega a mano porque llega al sistema a
+        // través de la CDN (no directo). Si algún actor no aparece,
+        // agrégalo igual: include * nombreDelActor
+        systemContext sistema "Contexto" "Nivel 1: Diagrama de contexto" {
+            include * ciudadania
+            autoLayout
+        }
+
+        // ----- NIVEL 2: CONTENEDORES -----
+        // Muestra los contenedores de "sistema" y lo que los rodea.
+        container sistema "Contenedores" "Nivel 2: Diagrama de contenedores" {
+            include * ciudadania
+            autoLayout
+        }
+
+        // ----- NIVEL 3: COMPONENTES -----
+        // Pon aquí el identificador del contenedor al que haces zoom
+        // (el mismo que tiene llaves { } con componentes adentro).
+        component servEscrutinio "Componentes" "Nivel 3: Componentes del servicio de escrutinio" {
+            include *
+            autoLayout
+        }
+
+        // autoLayout acomoda las cajas solo. Opciones:
+        //   autoLayout      -> de arriba hacia abajo (por defecto)
+        //   autoLayout lr   -> de izquierda a derecha
+        // Si las flechas se cruzan, prueba "lr" o mueve las cajas a
+        // mano en el editor antes de exportar.
+
+        // =============================================================
+        // STYLES: colores y formas (estilo clásico C4).
+        // No necesitas cambiar nada aquí.
+        // =============================================================
+        styles {
+            // Personas: azul oscuro con forma de persona
+            element "Person" {
+                shape Person
+                background #08427b
+                color #ffffff
+            }
+            // Tu sistema: azul
+            element "Software System" {
+                background #1168bd
+                color #ffffff
+            }
+            // Contenedores: azul medio
+            element "Container" {
+                background #438dd5
+                color #ffffff
+            }
+            // Componentes: celeste con letra negra
+            element "Component" {
+                background #85bbf0
+                color #000000
+            }
+            // Todo lo que tenga el tag "Externo": gris
+            element "Externo" {
+                background #999999
+                color #ffffff
+            }
+            // Todo lo que tenga el tag "Base de datos": cilindro
+            element "Base de datos" {
+                shape Cylinder
+            }
+        }
+    }
+}
+
+/*
+ =====================================================================
+  CHECKLIST ANTES DE ENTREGAR
+ =====================================================================
+  [ ] ¿Todos los actores del caso están en PERSONAS?
+  [ ] ¿Todos los sistemas externos tienen el tag "Externo"?
+  [ ] ¿Cada módulo del caso tiene al menos un contenedor?
+  [ ] ¿Cada contenedor tiene tecnología?
+  [ ] ¿Las bases de datos tienen el tag "Base de datos"?
+  [ ] ¿Cada actor tiene una flecha hacia algún contenedor?
+  [ ] ¿Todas las flechas tienen un verbo que explique qué hacen?
+  [ ] ¿El contenedor de la vista "component" tiene componentes adentro?
+  [ ] ¿No hay identificadores repetidos ni con tildes o espacios?
+
+  ERRORES FRECUENTES AL PEGAR EN STRUCTURIZR:
+   - "The element ... does not exist": escribiste mal un identificador
+     en una relación (revisa mayúsculas/minúsculas).
+   - "Unexpected tokens": falta cerrar comillas o una llave.
+   - Un elemento no aparece en la vista: no tiene relaciones; agrégale
+     una flecha o inclúyelo a mano con "include nombre".
+ =====================================================================
+*/
